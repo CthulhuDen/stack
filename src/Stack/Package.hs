@@ -366,7 +366,13 @@ generateBuildInfoOpts BioInput {..} =
     cObjectFiles =
         mapMaybe (fmap toFilePath .
                   makeObjectFilePathFromC biCabalDir biComponentName biDistDir)
-                 cfiles
+                 cfilesAll
+    cfilesAll = cfiles <> mapMaybe chs2c (mapMaybe dotCabalModulePath biDotCabalPaths)
+    chs2c p = case (fileExtension p, mapMaybe (`stripProperPrefix` p) srcDirs) of
+      (".chs", suf:_) -> (\b -> biDistDir </> b </> suf) <$> parseRelDir "build" >>= addFileExtension ".c"
+      _               -> Nothing
+      where
+        srcDirs = fmap (biCabalDir </>) $ mapMaybe parseRelDir $ hsSourceDirs biBuildInfo
     cfiles = mapMaybe dotCabalCFilePath biDotCabalPaths
     -- Generates: -package=base -package=base16-bytestring-0.1.1.6 ...
     deps =
